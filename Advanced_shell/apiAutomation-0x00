@@ -1,0 +1,80 @@
+#!/bin/bash
+# Tells the system to run this script using the Bash shell
+
+# ---------------- Strict Mode for Safe Scripting ----------------
+set -euo pipefail
+# -e : Exit immediately if any command fails
+# -u : Treat usage of undefined variables as an error
+# -o pipefail : Fail the whole pipeline if any part of it fails
+# This ensures the script is robust and safe, especially for automation
+
+# ---------------- Configuration ----------------
+API_URL="https://pokeapi.co/api/v2/pokemon/pikachu"
+# URL of the API endpoint to fetch Pikachu data
+
+OUTPUT_FILE="data.json"
+# The file where the successful response (in JSON) will be saved
+
+ERROR_FILE="errors.txt"
+# File to log any errors or failed attempts
+
+TIMEOUT=10
+# The maximum time (in seconds) to wait for a server response before giving up
+
+# ---------------- Dependency Check ----------------
+# Make sure 'curl' is installed (it's the tool used to fetch web data)
+command -v curl >/dev/null 2>&1 || {
+  echo "Error: curl is not installed" >&2
+  exit 1
+}
+# `command -v curl`: Checks if 'curl' exists
+# `>/dev/null`: Hides normal output
+# `2>&1`: Redirects any error messages to the same black hole
+# If not found, the block `{ ... }` runs and exits the script with an error
+
+# ---------------- File Write Check ----------------
+# Make sure we can write to the output and error files
+touch "$OUTPUT_FILE" "$ERROR_FILE" 2>>"$ERROR_FILE" || {
+  echo "Error: Cannot write to $OUTPUT_FILE or $ERROR_FILE" >&2
+  exit 1
+}
+# `touch` creates the files if they don’t exist
+# `2>>"$ERROR_FILE"` logs any error encountered
+# If it fails, print a message to stderr and exit
+
+# ---------------- Make the API Request ----------------
+response=$(curl -s -m "$TIMEOUT" -w "\n%{http_code}" "$API_URL" 2>>"$ERROR_FILE")
+curl_status=$?
+# `curl`:
+#   -s: silent mode (no progress bar)
+#   -m: timeout in seconds
+#   -w: prints the HTTP status code on a new line at the end
+# `response` captures both the body and status code
+# `$?` stores the curl exit code (0 = success)
+
+# ---------------- Check if curl command failed ----------------
+if [ $curl_status -ne 0 ]; then
+  echo "Error: curl failed with exit code $curl_status" >>"$ERROR_FILE"
+  exit 1
+fi
+# If curl failed entirely (e.g., no internet), log the exit code and stop
+
+# ---------------- Split response into body and HTTP code ----------------
+body=$(echo "$response" | head -n -1)
+# Gets all lines except the last = the actual JSON data
+
+http_code=$(echo "$response" | tail -n 1)
+# Last line is the HTTP status code (e.g., 200 for OK, 404 for not found)
+
+# ---------------- Handle the API Response ----------------
+if [ "$http_code" -eq 200 ]; then
+  echo "$body" >"$OUTPUT_FILE" || {
+    echo "Error: Failed to write to $OUTPUT_FILE" >&2
+    exit 1
+  }
+else
+  echo "Error: HTTP $http_code - Failed to fetch data from $API_URL" >>"$ERROR_FILE"
+  exit 1
+fi
+# If HTTP code is 200: save body to file
+# Else: log failure with the actual HTTP code
