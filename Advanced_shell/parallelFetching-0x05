@@ -1,0 +1,45 @@
+#!/bin/bash
+mkdir -p pokemon_data
+
+pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+fetch_pokemon(){
+    local pokemon=$1
+    local retries=3
+    local attempt=1
+    local success=0
+
+    while [ ${attempt} -le ${retries} ]; do
+        echo "${pokemon} ${attempt}............"
+        curl -s "https://pokeapi.co/api/v2/pokemon/${pokemon}>pokemon_data/${pokemon}.json"
+        if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
+            echo "${pokemon} saved in pokemon_data/${pokemon}.json"
+            success=1
+            break
+        else
+            echo "Failed.${pokemon} save failed on attempt ${attempt}. Retrying in 2s ....... "
+            sleep 2
+        fi
+        attempt=$((attempt + 1))
+    done
+    if [ $success -ne 1 ]; then
+        echo " $(date): ${pokemon} failed after ${retries} attempts." >> errors_parallel.txt
+        echo "${pokemon} Failed after ${retries} retries"
+    fi
+}
+
+for pokemon in ${pokemon_list[@]}; do
+    fetch_pokemon ${pokemon} &
+done
+
+wait
+
+echo ""
+echo "🎉 All parallel fetch operations completed!"
+
+# Step 7: Print summary of any failures
+if [ -s errors_parallel.txt ]; then
+    echo "⚠️ Some fetches failed. See errors_parallel.txt for details."
+else
+    echo "✅ All Pokémon fetched successfully without errors."
+fi
