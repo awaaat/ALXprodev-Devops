@@ -1,0 +1,36 @@
+#!/bin/bash
+# -------------------------------
+# Script to extract Pokémon data
+# Uses: jq, sed, bc
+# Output: Formatted sentence with name, type, weight, height
+# -------------------------------
+
+# Step 1: Extract name from JSON
+# `jq -r` gets raw (no quotes) value of the "name" field
+name=$(jq -r '.name' data.json)
+# Step 2: Extract height and weight from JSON
+# These are numeric values, given in decimeters and hectograms
+height=$(jq -r '.height' data.json)
+weight=$(jq -r '.weight' data.json)
+# Step 3: Extract the first type name from JSON
+# `types[0].type.name` drills into array and nested object
+type=$(jq -r '.types[0].type.name' data.json)
+
+# Step 5: Convert height to m
+height_in_m=$(echo "$height / 10" | bc -l)
+# Step 5: Convert weight from hectograms to kilograms
+weight_in_kg=$(echo "$weight / 10" | bc -l)
+
+# Step 6: Capitalize the first letter of name and type using sed
+# \u → uppercases first letter
+name=$(echo "$name" | sed 's/.*/\u&/')
+type=$(echo "$type" | sed 's/.*/\u&/')
+
+# Step 7: Print formatted output
+# Use printf for better number formatting (one decimal place)
+# awk used to round to 1 decimal
+rounded_height=$(echo "$height_in_m" | awk '{printf "%.1f", $1}')
+rounded_weight=$(echo "$weight_in_kg" | awk '{printf "%.1f", $1}')
+
+# Final output
+echo "$name is of type $type, weighs ${rounded_weight}kg, and is ${rounded_height}m tall."
