@@ -1,45 +1,38 @@
 #!/bin/bash
+# ------------------------------------------------------------------
+# Script: parallelFetching-0x05
+# Purpose: Fetch Pokémon data in parallel using background processes
+# Tools used: curl, &, wait, mkdir, echo
+# ------------------------------------------------------------------
+
+# Step 1: Create a folder for data (if not exists)
 mkdir -p pokemon_data
 
+# Step 2: Define the Pokémon list
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-fetch_pokemon(){
+# Step 3: Function to fetch a single Pokémon’s data
+fetch_pokemon() {
     local pokemon=$1
-    local retries=3
-    local attempt=1
-    local success=0
+    echo "Fetching $pokemon..."
 
-    while [ ${attempt} -le ${retries} ]; do
-        echo "${pokemon} ${attempt}............"
-        curl -s "https://pokeapi.co/api/v2/pokemon/${pokemon}>pokemon_data/${pokemon}.json"
-        if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
-            echo "${pokemon} saved in pokemon_data/${pokemon}.json"
-            success=1
-            break
-        else
-            echo "Failed.${pokemon} save failed on attempt ${attempt}. Retrying in 2s ....... "
-            sleep 2
-        fi
-        attempt=$((attempt + 1))
-    done
-    if [ $success -ne 1 ]; then
-        echo " $(date): ${pokemon} failed after ${retries} attempts." >> errors_parallel.txt
-        echo "${pokemon} Failed after ${retries} retries"
+    curl -s "https://pokeapi.co/api/v2/pokemon/${pokemon}" > "pokemon_data/${pokemon}.json"
+
+    if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
+        echo "$pokemon saved to pokemon_data/${pokemon}.json"
+    else
+        echo "$(date):Failed to fetch $pokemon" >> errors_parallel.txt
+        echo "$pokemon fetch failed"
     fi
 }
 
-for pokemon in ${pokemon_list[@]}; do
-    fetch_pokemon ${pokemon} &
+# Step 4: Loop through Pokémon list and fetch them in background
+for pokemon in "${pokemon_list[@]}"; do
+    fetch_pokemon "$pokemon" &  # Run the function in the background using &
 done
 
-wait
+# Step 5: Wait for all background jobs to complete before continuing
+wait  # This command blocks until all parallel background jobs finish
 
-echo ""
-echo "🎉 All parallel fetch operations completed!"
-
-# Step 7: Print summary of any failures
-if [ -s errors_parallel.txt ]; then
-    echo "⚠️ Some fetches failed. See errors_parallel.txt for details."
-else
-    echo "✅ All Pokémon fetched successfully without errors."
-fi
+# Step 6: Done message
+echo "All fetch operations completed!"
