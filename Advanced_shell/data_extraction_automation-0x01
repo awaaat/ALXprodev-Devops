@@ -29,8 +29,8 @@ type=$(echo "$type" | sed 's/.*/\u&/')
 # Step 7: Print formatted output
 # Use printf for better number formatting (one decimal place)
 # awk used to round to 1 decimal
-rounded_height=$(echo "$height_in_m" | awk '{printf "%.1f", $1}')
-rounded_weight=$(echo "$weight_in_kg" | awk '{printf "%.1f", $1}')
+formatted_height=$(echo "$height_in_m" | awk '{printf "%.1f", $1}')
+formatted_weight=$(echo "$weight_in_kg" | awk '{printf "%.1f", $1}')
 
 # Final output
 echo "$name is of type $type, weighs ${rounded_weight}kg, and is ${rounded_height}m tall."
