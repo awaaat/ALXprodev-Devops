@@ -1,45 +1,129 @@
 #!/bin/bash
+
+# ---------------------------------------------
+# Task 5: Parallel Data Fetching with Management
+# ---------------------------------------------
+# This script fetches data for multiple Pokémon in parallel.
+# It includes error handling, retry logic, and uses background
+# process management commands such as `jobs`, `kill`, and `wait`.
+# ---------------------------------------------
+
+# Step 1: Ensure output directory exists
 mkdir -p pokemon_data
 
+# Step 2: Define list of Pokémon
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-fetch_pokemon(){
+# Step 3: Define fetch function with retry logic
+fetch_pokemon() {
     local pokemon=$1
     local retries=3
     local attempt=1
     local success=0
 
-    while [ ${attempt} -le ${retries} ]; do
-        echo "${pokemon} ${attempt}............"
-        curl -s "https://pokeapi.co/api/v2/pokemon/${pokemon}>pokemon_data/${pokemon}.json"
+    while [ $attempt -le $retries ]; do
+        echo "[Attempt $attempt] Fetching $pokemon..."
+
+        curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon" > "pokemon_data/${pokemon}.json"
+
         if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
-            echo "${pokemon} saved in pokemon_data/${pokemon}.json"
+            echo "✅ $pokemon saved in pokemon_data/${pokemon}.json"
             success=1
             break
         else
-            echo "Failed.${pokemon} save failed on attempt ${attempt}. Retrying in 2s ....... "
+            echo "❌ $pokemon fetch failed (attempt $attempt). Retrying in 2 seconds..."
             sleep 2
         fi
+
         attempt=$((attempt + 1))
     done
+
     if [ $success -ne 1 ]; then
-        echo " $(date): ${pokemon} failed after ${retries} attempts." >> errors_parallel.txt
-        echo "${pokemon} Failed after ${retries} retries"
+        echo "$(date): $pokemon failed after $retries attempts." >> errors_parallel.txt
+        echo "❌ $pokemon FAILED after $retries attempts"
     fi
 }
 
-for pokemon in ${pokemon_list[@]}; do
-    fetch_pokemon ${pokemon} &
+# Step 4: Launch fetches in parallel
+pids=()
+echo "Launching fetch jobs in parallel..."
+for pokemon in "${pokemon_list[@]}"; do
+    fetch_pokemon "$pokemon" &
+    pids+=("$!")  # Capture PID of background job
+    echo "Started fetching $pokemon (PID=$!)"
 done
 
-wait
+# Step 5: List active background jobs
+jobs
 
-echo ""
-echo "All parallel fetch operations completed!"
+# Optional: Forcefully kill any job (example only - not needed unless troubleshooting)
+# kill -9 <PID>
 
-# Step 7: Print summary of any failures
+# Step 6: Wait for all background jobs to complete
+for pid in "${pids[@]}"; do
+    wait "$pid"
+    echo "Process $pid completed."
+done
+
+echo "\n🎉 All parallel fetch operations completed!"
+
+# Step 7: Show errors if any
 if [ -s errors_parallel.txt ]; then
-    echo "Some fetches failed. See errors_parallel.txt for details."
+    echo "⚠️ Some fetches failed. See errors_parallel.txt."
 else
-    echo "All Pokémon fetched successfully without errors."
+    echo "✅ All Pokémon fetched successfully."
 fi
+
+# ---------------------------------------------
+# Bash Reference Cheatsheet (Core Tools & Concepts)
+# ---------------------------------------------
+# 1. Background Jobs
+#    command &                # Run command in background
+#    jobs                     # List current background jobs
+#    kill -9 <PID>            # Force kill a background job
+#    wait                     # Wait for all background jobs to finish
+#    wait <PID>               # Wait for specific job
+#
+# 2. Variables & Arrays
+#    myvar="hello"
+#    echo $myvar             # Use variable
+#    myarr=(one two three)   # Array
+#    echo ${myarr[1]}        # Access index
+#
+# 3. Conditionals
+#    if [ condition ]; then ... fi
+#    -eq -ne -gt -lt -ge -le  (numbers)
+#    -z "str"    # empty string
+#    -n "str"    # non-empty
+#    -s file     # file exists and not empty
+#
+# 4. Loops
+#    for var in list; do ... done
+#    while [ condition ]; do ... done
+#
+# 5. Math
+#    $((expression))         # integer math
+#    echo "3.5 + 2.1" | bc -l # float math
+#
+# 6. Functions
+#    my_func() { ... }
+#    my_func arg1 arg2
+#
+# 7. String Manipulation
+#    echo "abc" | sed 's/.*/\u&/'     # Capitalize first letter
+#    echo "a:b:c" | cut -d':' -f2     # Extract field
+#
+# 8. Files & Redirection
+#    > file       # overwrite
+#    >> file      # append
+#    < file       # input
+#    2> errors.txt # stderr
+#
+# 9. JSON Parsing
+#    jq '.key' file.json
+#    jq -r '.key' file.json   # raw output
+#
+# 10. Debugging
+#    set -x      # print commands
+#    set -e      # stop on error
+#    echo $?     # exit code of last command
