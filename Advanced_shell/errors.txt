@@ -1,0 +1,5 @@
+20 Juni 2025 11:16:35 asubuhi EAT: Failed to fetch pokemon data for bulbasaur
+20 Juni 2025 11:17:06 asubuhi EAT: Failed to fetch pokemon data for ivysaur
+20 Juni 2025 11:17:09 asubuhi EAT: Failed to fetch pokemon data for venusaur
+20 Juni 2025 11:17:12 asubuhi EAT: Failed to fetch pokemon data for charmander
+20 Juni 2025 11:17:16 asubuhi EAT: Failed to fetch pokemon data for charmeleon

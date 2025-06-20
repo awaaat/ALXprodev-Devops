@@ -1,0 +1,18 @@
+#!/bin/bash
+#Define the exact list of Pokémon (as per requirement)
+pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+# Step 3: Loop through the list
+for pokemon in ${pokemon_list[@]}; do
+    echo "Fetching data for ${pokemon}..."
+    curl -s "https://pokeapi.co/api/v2/pokemon/${pokemon}"  > ${pokemon}.json
+    # Check if curl was successful and file is not empty
+    if [ $? -eq 0 ] && [ -s "${pokemon}.json" ]; then
+        echo "Saved data to ${pokemon}.json"
+    else
+        echo "$(date): Failed to fetch pokemon data for ${pokemon}" >>errors.txt
+    fi
+    sleep 2
+done
+
+
+    
